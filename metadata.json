@@ -1,0 +1,6 @@
+{
+  "name": "Spesa al Volo",
+  "description": "Spara codici a barre e QR code con il telefono: il conto della spesa si aggiorna da solo con budget, storico, negozi e lista della spesa.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54">
+        <!-- Shopping Cart / Basket Body in crisp white & teal -->
+        <!-- Corner brackets / Scanner viewfinder frame -->
+        <path
+            android:strokeColor="#36BF8E"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M27,35 L27,27 L35,27" />
+        <path
+            android:strokeColor="#36BF8E"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M81,35 L81,27 L73,27" />
+        <path
+            android:strokeColor="#36BF8E"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M27,73 L27,81 L35,81" />
+        <path
+            android:strokeColor="#36BF8E"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M81,73 L81,81 L73,81" />
+
+        <!-- Barcode lines -->
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M33,35 h3 v38 h-3 z" />
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M39,35 h2 v38 h-2 z" />
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M43,35 h4 v38 h-4 z" />
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M49,35 h2 v38 h-2 z" />
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M54,35 h5 v38 h-5 z" />
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M61,35 h2 v38 h-2 z" />
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M66,35 h4 v38 h-4 z" />
+        <path
+            android:fillColor="#E4ECF1"
+            android:pathData="M72,35 h3 v38 h-3 z" />
+
+        <!-- Laser scanning line across the barcode with glow -->
+        <path
+            android:strokeColor="#80FF5C50"
+            android:strokeWidth="5"
+            android:pathData="M24,54 L84,54" />
+        <path
+            android:strokeColor="#FF5C50"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M25,54 L83,54" />
+
+        <!-- Cart badge icon at bottom right -->
+        <path
+            android:fillColor="#36BF8E"
+            android:pathData="M70,68 c-2.2,0 -4,1.8 -4,4 s1.8,4 4,4 s4,-1.8 4,-4 s-1.8,-4 -4,-4 z" />
+    </group>
+</vector>
