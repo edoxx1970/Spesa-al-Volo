@@ -1,5 +1,6 @@
 package com.example.util
 
+import com.google.mlkit.vision.barcode.common.Barcode
 import java.net.URI
 import java.net.URLDecoder
 import kotlin.math.pow
@@ -12,12 +13,31 @@ data class ParsedScanResult(
     val base: String? = null,
     val priceCents: Int? = null,
     val weightKg: String? = null,
-    val plu: String? = null
+    val plu: String? = null,
+    val lotNumber: String? = null,
+    val expirationDate: String? = null,
+    val formatName: String = "EAN",
+    val rawValue: String = key
 )
 
 object BarcodeParser {
 
     private const val GS = '\u001D'
+
+    fun getFormatName(formatId: Int): String {
+        return when (formatId) {
+            Barcode.FORMAT_EAN_13 -> "EAN-13"
+            Barcode.FORMAT_EAN_8 -> "EAN-8"
+            Barcode.FORMAT_UPC_A -> "UPC-A"
+            Barcode.FORMAT_UPC_E -> "UPC-E"
+            Barcode.FORMAT_CODE_128 -> "Code 128"
+            Barcode.FORMAT_CODE_39 -> "Code 39"
+            Barcode.FORMAT_ITF -> "ITF-14"
+            Barcode.FORMAT_QR_CODE -> "QR Code"
+            Barcode.FORMAT_DATA_MATRIX -> "Data Matrix"
+            else -> "Codice a barre"
+        }
+    }
 
     fun eanCheck(body: String): String {
         var s = 0
@@ -55,11 +75,21 @@ object BarcodeParser {
             show = code,
             kind = "banco",
             plu = plu,
-            priceCents = price
+            priceCents = price,
+            formatName = "EAN-13 Banco",
+            rawValue = code
         )
     }
 
-    private fun gs1Result(ai: Map<String, String>): ParsedScanResult? {
+    private fun formatGs1Date(yymmdd: String?): String? {
+        if (yymmdd == null || yymmdd.length != 6 || !yymmdd.all { it.isDigit() }) return null
+        val yy = yymmdd.substring(0, 2)
+        val mm = yymmdd.substring(2, 4)
+        val dd = yymmdd.substring(4, 6)
+        return "$dd/$mm/20$yy"
+    }
+
+    private fun gs1Result(ai: Map<String, String>, defaultFormat: String = "GS1"): ParsedScanResult? {
         val gtin = ai["01"] ?: return null
         if (!gtin.matches(Regex("""^\d{14}$"""))) return null
         val base = gtinToKey(gtin)
@@ -82,6 +112,9 @@ object BarcodeParser {
             }
         }
 
+        val lot = ai["10"]
+        val expiry = formatGs1Date(ai["17"] ?: ai["15"])
+
         return if (price != null && price > 0) {
             ParsedScanResult(
                 key = "$base#$price#$wRaw",
@@ -89,18 +122,27 @@ object BarcodeParser {
                 kind = "gs1",
                 base = base,
                 priceCents = price,
-                weightKg = weightStr
+                weightKg = weightStr,
+                lotNumber = lot,
+                expirationDate = expiry,
+                formatName = defaultFormat,
+                rawValue = "$base#$price#$wRaw"
             )
         } else {
             ParsedScanResult(
                 key = base,
                 show = base,
-                kind = "ean"
+                kind = "ean",
+                base = base,
+                lotNumber = lot,
+                expirationDate = expiry,
+                formatName = defaultFormat,
+                rawValue = base
             )
         }
     }
 
-    private fun parseDigitalLink(s: String): ParsedScanResult? {
+    private fun parseDigitalLink(s: String, formatName: String): ParsedScanResult? {
         if (!s.startsWith("http://", ignoreCase = true) && !s.startsWith("https://", ignoreCase = true)) {
             return null
         }
@@ -136,7 +178,7 @@ object BarcodeParser {
                     }
                 }
             }
-            gs1Result(ai)
+            gs1Result(ai, formatName)
         } catch (e: Exception) {
             null
         }
@@ -158,7 +200,7 @@ object BarcodeParser {
         return Pair(null, null)
     }
 
-    private fun parseElementString(s: String): ParsedScanResult? {
+    private fun parseElementString(s: String, formatName: String): ParsedScanResult? {
         val t = s.replace(Regex("""^\](C1|e0|d2|Q3|J1)"""), "")
         val parenMatch = Regex("""\((\d{2,4})\)([^(]*)""").findAll(t)
         if (parenMatch.any()) {
@@ -166,7 +208,7 @@ object BarcodeParser {
             for (m in parenMatch) {
                 ai[m.groupValues[1]] = m.groupValues[2].trim()
             }
-            return gs1Result(ai)
+            return gs1Result(ai, formatName)
         }
         if (!t.matches(Regex("""^01\d{14}.*"""))) return null
         if (t == s && !t.contains(GS) && t.length < 16) return null
@@ -192,14 +234,18 @@ object BarcodeParser {
                 i = j
             }
         }
-        return gs1Result(ai)
+        return gs1Result(ai, formatName)
     }
 
-    fun readScan(raw: String?, weighedEnabled: Boolean = true): ParsedScanResult? {
+    fun readScan(
+        raw: String?,
+        weighedEnabled: Boolean = true,
+        formatName: String = "EAN"
+    ): ParsedScanResult? {
         val s = (raw ?: "").replace(Regex("""[\r\n]+"""), " ").trim()
         if (s.isEmpty()) return null
 
-        val gs1 = parseDigitalLink(s) ?: parseElementString(s)
+        val gs1 = parseDigitalLink(s, formatName) ?: parseElementString(s, formatName)
         if (gs1 != null) return gs1
 
         val compact = s.replace(Regex("""\s+"""), "")
@@ -212,16 +258,17 @@ object BarcodeParser {
             val weighed = parseWeighed(k, weighedEnabled)
             if (weighed != null) return weighed
 
-            return ParsedScanResult(key = k, show = k, kind = "ean")
+            val format = if (k.length == 8) "EAN-8" else if (k.length == 13) "EAN-13" else formatName
+            return ParsedScanResult(key = k, show = k, kind = "ean", formatName = format, rawValue = s)
         }
 
         if (compact.matches(Regex("""^[A-Za-z0-9\-./+%$]{3,40}$""")) && !s.startsWith("http", ignoreCase = true)) {
             val up = compact.uppercase()
-            return ParsedScanResult(key = up, show = up, kind = "ean")
+            return ParsedScanResult(key = up, show = up, kind = "ean", formatName = formatName, rawValue = s)
         }
 
         val qrText = if (s.length > 160) s.substring(0, 160) else s
-        return ParsedScanResult(key = "QR:$qrText", show = qrText, kind = "qr")
+        return ParsedScanResult(key = "QR:$qrText", show = qrText, kind = "qr", formatName = "QR Code", rawValue = s)
     }
 
     fun shortCode(s: String?): String {
